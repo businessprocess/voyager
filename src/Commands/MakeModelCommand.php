@@ -2,6 +2,7 @@
 
 namespace TCG\Voyager\Commands;
 
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Foundation\Console\ModelMakeCommand;
 use Symfony\Component\Console\Input\InputOption;
 
@@ -20,6 +21,17 @@ class MakeModelCommand extends ModelMakeCommand
      * @var string
      */
     protected $description = 'Create a new Voyager model class';
+
+    public function __construct(Filesystem $files)
+    {
+        // Laravel 13 defines make:model with a signature, which would override our name and options
+        if (isset($this->signature)) {
+            $this->signature = preg_replace('/^make:model\b/', $this->name, $this->signature)
+                .' {--d|softdelete : Add soft-delete field to Model}';
+        }
+
+        parent::__construct($files);
+    }
 
     /**
      * Get the stub file for the generator.

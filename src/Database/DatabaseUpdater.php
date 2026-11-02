@@ -2,9 +2,7 @@
 
 namespace TCG\Voyager\Database;
 
-use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Schema\SchemaException;
-use Doctrine\DBAL\Schema\TableDiff;
+use TCG\Voyager\Database\Schema\SchemaException;
 use TCG\Voyager\Database\Schema\SchemaManager;
 use TCG\Voyager\Database\Schema\Table;
 use TCG\Voyager\Database\Types\Type;
@@ -69,21 +67,13 @@ class DatabaseUpdater
             $this->originalTable = SchemaManager::listTableDetails($this->tableArr['oldName']);
         }
 
-        $tableDiff = $this->originalTable->diff($this->table);
-
-        // Add new table name to tableDiff
-        if ($newName) {
-            if (!$tableDiff) {
-                $tableDiff = new TableDiff($this->tableArr['oldName']);
-                $tableDiff->fromTable = $this->originalTable;
-            }
-
-            $tableDiff->newName = $newName;
+        // Update the table
+        if ($tableDiff = $this->originalTable->diff($this->table)) {
+            SchemaManager::alterTable($tableDiff);
         }
 
-        // Update the table
-        if ($tableDiff) {
-            SchemaManager::alterTable($tableDiff);
+        if ($newName) {
+            SchemaManager::renameTable($this->tableArr['oldName'], $newName);
         }
     }
 
@@ -100,42 +90,13 @@ class DatabaseUpdater
             return false;
         }
 
-        $renamedColumnsDiff = new TableDiff($this->tableArr['oldName']);
-        $renamedColumnsDiff->fromTable = $this->originalTable;
+        $renamedTable = SchemaManager::listTableDetails($this->tableArr['oldName']);
 
         foreach ($renamedColumns as $oldName => $newName) {
-            $renamedColumnsDiff->renamedColumns[$oldName] = $this->table->getColumn($newName);
+            $renamedTable->renameColumn($oldName, $newName);
         }
 
-        return $renamedColumnsDiff;
-    }
-
-    /**
-     * Get the table diff to rename columns and indexes.
-     *
-     * @return \Doctrine\DBAL\Schema\TableDiff
-     */
-    protected function getRenamedDiff()
-    {
-        $renamedColumns = $this->getRenamedColumns();
-        $renamedIndexes = $this->getRenamedIndexes();
-
-        if (empty($renamedColumns) && empty($renamedIndexes)) {
-            return false;
-        }
-
-        $renamedDiff = new TableDiff($this->tableArr['oldName']);
-        $renamedDiff->fromTable = $this->originalTable;
-
-        foreach ($renamedColumns as $oldName => $newName) {
-            $renamedDiff->renamedColumns[$oldName] = $this->table->getColumn($newName);
-        }
-
-        foreach ($renamedIndexes as $oldName => $newName) {
-            $renamedDiff->renamedIndexes[$oldName] = $this->table->getIndex($newName);
-        }
-
-        return $renamedDiff;
+        return Table::compare($this->originalTable, $renamedTable);
     }
 
     /**
@@ -161,30 +122,5 @@ class DatabaseUpdater
         }
 
         return $renamedColumns;
-    }
-
-    /**
-     * Get indexes that were renamed.
-     *
-     * @return array
-     */
-    protected function getRenamedIndexes()
-    {
-        $renamedIndexes = [];
-
-        foreach ($this->tableArr['indexes'] as $index) {
-            $oldName = $index['oldName'];
-
-            // make sure this is an existing index and not a new one
-            if ($this->originalTable->hasIndex($oldName)) {
-                $name = $index['name'];
-
-                if ($name != $oldName) {
-                    $renamedIndexes[$oldName] = $name;
-                }
-            }
-        }
-
-        return $renamedIndexes;
     }
 }

@@ -2,9 +2,9 @@
 
 namespace TCG\Voyager\Database\Schema;
 
-use Doctrine\DBAL\Schema\SchemaException;
 use Doctrine\DBAL\Schema\Table as DoctrineTable;
 use Illuminate\Support\Facades\DB;
+use TCG\Voyager\Database\DoctrineConnection;
 use TCG\Voyager\Database\Types\Type;
 
 abstract class SchemaManager
@@ -18,12 +18,17 @@ abstract class SchemaManager
 
     public static function manager()
     {
-        return DB::connection()->getDoctrineSchemaManager();
+        return static::getDatabaseConnection()->createSchemaManager();
     }
 
     public static function getDatabaseConnection()
     {
-        return DB::connection()->getDoctrineConnection();
+        return DoctrineConnection::for(DB::connection());
+    }
+
+    public static function getDatabasePlatform()
+    {
+        return static::getDatabaseConnection()->getDatabasePlatform();
     }
 
     public static function tableExists($table)
@@ -53,14 +58,11 @@ abstract class SchemaManager
      */
     public static function listTableDetails($tableName)
     {
-        $columns = static::manager()->listTableColumns($tableName);
+        $manager = static::manager();
 
-        $foreignKeys = [];
-        if (static::manager()->getDatabasePlatform()->supportsForeignKeyConstraints()) {
-            $foreignKeys = static::manager()->listTableForeignKeys($tableName);
-        }
-
-        $indexes = static::manager()->listTableIndexes($tableName);
+        $columns = $manager->listTableColumns($tableName);
+        $foreignKeys = $manager->listTableForeignKeys($tableName);
+        $indexes = $manager->listTableIndexes($tableName);
 
         return new Table($tableName, $columns, $indexes, [], $foreignKeys, []);
     }
@@ -122,6 +124,10 @@ abstract class SchemaManager
             $table = Table::make($table);
         }
 
+        if (static::tableExists($table->getName())) {
+            throw SchemaException::tableAlreadyExists($table->getName());
+        }
+
         static::manager()->createTable($table);
     }
 
@@ -133,7 +139,7 @@ abstract class SchemaManager
             throw SchemaException::tableDoesNotExist($table);
         }
 
-        return static::manager()->listTableDetails($table);
+        return static::manager()->introspectTable($table);
     }
 
     public static function getDoctrineColumn($table, $column)

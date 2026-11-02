@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use TCG\Voyager\Database\DatabaseUpdater;
+use TCG\Voyager\Database\Platforms\Platform;
 use TCG\Voyager\Database\Schema\Column;
 use TCG\Voyager\Database\Schema\Identifier;
 use TCG\Voyager\Database\Schema\SchemaManager;
@@ -190,7 +191,7 @@ class VoyagerDatabaseController extends Controller
         $db->oldTable = $oldTable ? $oldTable : json_encode(null);
         $db->action = $action;
         $db->identifierRegex = Identifier::REGEX;
-        $db->platform = SchemaManager::getDatabasePlatform()->getName();
+        $db->platform = Platform::getPlatformName(SchemaManager::getDatabasePlatform());
 
         return $db;
     }

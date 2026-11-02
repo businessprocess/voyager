@@ -9,12 +9,20 @@ use TCG\Voyager\Database\Schema\SchemaManager;
 
 abstract class Type extends DoctrineType
 {
-    protected static $customTypesRegistered = false;
+    protected static $registeredPlatform;
     protected static $platformTypeMapping = [];
     protected static $allTypes = [];
     protected static $platformTypes = [];
     protected static $customTypeOptions = [];
     protected static $typeCategories = [];
+    protected static $typeOptions = [];
+
+    /**
+     * Table the column using this type belongs to (needed by some MySQL types).
+     *
+     * @var string|null
+     */
+    public $tableName;
 
     public const NAME = 'UNDEFINED_TYPE_NAME';
     public const NOT_SUPPORTED = 'notSupported';
@@ -31,11 +39,19 @@ abstract class Type extends DoctrineType
 
     public static function toArray(DoctrineType $type)
     {
-        $customTypeOptions = $type->customOptions ?? [];
+        $name = static::lookupName($type);
 
         return array_merge([
-            'name' => $type->getName(),
-        ], $customTypeOptions);
+            'name' => $name,
+        ], static::$typeOptions[$name] ?? []);
+    }
+
+    /**
+     * Whether the current platform does not allow default values for the type (e.g. TEXT and BLOB on MySQL).
+     */
+    public static function isDefaultDisabled($typeName)
+    {
+        return (static::$typeOptions[$typeName]['default']['disabled'] ?? false) === true;
     }
 
     public static function getPlatformTypes()
@@ -44,14 +60,12 @@ abstract class Type extends DoctrineType
             return static::$platformTypes;
         }
 
-        if (!static::$customTypesRegistered) {
-            static::registerCustomPlatformTypes();
-        }
+        static::registerCustomPlatformTypes();
 
         $platform = SchemaManager::getDatabasePlatform();
 
         static::$platformTypes = Platform::getPlatformTypes(
-            $platform->getName(),
+            Platform::getPlatformName($platform),
             static::getPlatformTypeMapping($platform)
         );
 
@@ -77,12 +91,17 @@ abstract class Type extends DoctrineType
 
     public static function registerCustomPlatformTypes($force = false)
     {
-        if (static::$customTypesRegistered && !$force) {
+        $platform = SchemaManager::getDatabasePlatform();
+
+        // Type mappings live on the platform instance, which is new for every database connection
+        if (!$force && static::$registeredPlatform?->get() === $platform) {
             return;
         }
 
-        $platform = SchemaManager::getDatabasePlatform();
-        $platformName = ucfirst($platform->getName());
+        static::$platformTypeMapping = [];
+        static::$platformTypes = [];
+
+        $platformName = ucfirst(Platform::getPlatformName($platform));
 
         $customTypes = array_merge(
             static::getPlatformCustomTypes('Common'),
@@ -105,11 +124,14 @@ abstract class Type extends DoctrineType
 
         static::addCustomTypeOptions($platformName);
 
-        static::$customTypesRegistered = true;
+        static::$registeredPlatform = \WeakReference::create($platform);
     }
 
     protected static function addCustomTypeOptions($platformName)
     {
+        static::$customTypeOptions = [];
+        static::$typeOptions = [];
+
         static::registerCommonCustomTypeOptions();
 
         Platform::registerPlatformCustomTypeOptions($platformName);
@@ -118,7 +140,7 @@ abstract class Type extends DoctrineType
         foreach (static::$customTypeOptions as $option) {
             foreach ($option['types'] as $type) {
                 if (static::hasType($type)) {
-                    static::getType($type)->customOptions[$option['name']] = $option['value'];
+                    static::$typeOptions[$type][$option['name']] = $option['value'];
                 }
             }
         }

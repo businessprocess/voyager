@@ -13,11 +13,66 @@ abstract class Column
         $name = Identifier::validate($column['name'], 'Column');
         $type = $column['type'];
         $type = ($type instanceof DoctrineType) ? $type : DoctrineType::getType(trim($type['name']));
-        $type->tableName = $tableName;
+        if ($type instanceof Type) {
+            $type->tableName = $tableName;
+        }
 
-        $options = array_diff_key($column, array_flip(['name', 'composite', 'oldName', 'null', 'extra', 'type', 'charset', 'collation']));
+        // DBAL 3 silently dropped defaults the platform does not support, DBAL 4 sends them to the database
+        if (Type::isDefaultDisabled(Type::lookupName($type))) {
+            unset($column['default']);
+        }
 
-        return new DoctrineColumn($name, $type, $options);
+        return new DoctrineColumn($name, $type, static::castOptions($column));
+    }
+
+    /**
+     * DBAL 4 rejects unknown column options and is strict about their types,
+     * while the options here come straight from the (JSON) request.
+     *
+     * @return array
+     */
+    protected static function castOptions(array $column)
+    {
+        $casts = [
+            'length'           => 'int',
+            'precision'        => 'int',
+            'scale'            => 'int',
+            'unsigned'         => 'bool',
+            'fixed'            => 'bool',
+            'notnull'          => 'bool',
+            'autoincrement'    => 'bool',
+            'default'          => null,
+            'columnDefinition' => 'string',
+            'comment'          => 'string',
+        ];
+
+        $options = [];
+        foreach (array_intersect_key($column, $casts) as $option => $value) {
+            $cast = $casts[$option];
+
+            if ($cast === 'int') {
+                if ($value === null || $value === '') {
+                    // scale is not nullable
+                    if ($option !== 'scale') {
+                        $options[$option] = null;
+                    }
+                    continue;
+                }
+                $value = (int) $value;
+            } elseif ($cast === 'bool') {
+                $value = (bool) $value;
+            } elseif ($cast === 'string') {
+                if ($value === null && $option === 'columnDefinition') {
+                    $options[$option] = null;
+                    continue;
+                }
+                $value = (string) $value;
+            }
+
+            $options[$option] = $value;
+        }
+
+        return $options;
     }
 
     /**
@@ -25,8 +80,9 @@ abstract class Column
      */
     public static function toArray(DoctrineColumn $column)
     {
-        $columnArr = $column->toArray();
-        $columnArr['type'] = Type::toArray($columnArr['type']);
+        $columnArr = $column->toArray(true);
+        unset($columnArr['typeName'], $columnArr['values']);
+        $columnArr['type'] = Type::toArray($column->getType());
         $columnArr['oldName'] = $columnArr['name'];
         $columnArr['null'] = $columnArr['notnull'] ? 'NO' : 'YES';
         $columnArr['extra'] = static::getExtra($column);

@@ -6,13 +6,9 @@ use Doctrine\DBAL\Schema\ForeignKeyConstraint as DoctrineForeignKey;
 
 abstract class ForeignKey
 {
-    public static function make(array $foreignKey)
+    public static function make(array $foreignKey, $localTable = null)
     {
-        // Set the local table
-        $localTable = null;
-        if (isset($foreignKey['localTable'])) {
-            $localTable = SchemaManager::getDoctrineTable($foreignKey['localTable']);
-        }
+        $localTable = $foreignKey['localTable'] ?? $localTable;
 
         $localColumns = $foreignKey['localColumns'];
         $foreignTable = $foreignKey['foreignTable'];
@@ -22,35 +18,28 @@ abstract class ForeignKey
         // Set the name
         $name = isset($foreignKey['name']) ? trim($foreignKey['name']) : '';
         if (empty($name)) {
-            $table = isset($localTable) ? $localTable->getName() : null;
-            $name = Index::createName($localColumns, 'foreign', $table);
+            $name = Index::createName($localColumns, 'foreign', $localTable);
         } else {
             $name = Identifier::validate($name, 'Foreign Key');
         }
 
-        $doctrineForeignKey = new DoctrineForeignKey(
+        return new DoctrineForeignKey(
             $localColumns,
             $foreignTable,
             $foreignColumns,
             $name,
             $options
         );
-
-        if (isset($localTable)) {
-            $doctrineForeignKey->setLocalTable($localTable);
-        }
-
-        return $doctrineForeignKey;
     }
 
     /**
      * @return array
      */
-    public static function toArray(DoctrineForeignKey $fk)
+    public static function toArray(DoctrineForeignKey $fk, $localTable = null)
     {
         return [
             'name'           => $fk->getName(),
-            'localTable'     => $fk->getLocalTableName(),
+            'localTable'     => $localTable,
             'localColumns'   => $fk->getLocalColumns(),
             'foreignTable'   => $fk->getForeignTableName(),
             'foreignColumns' => $fk->getForeignColumns(),

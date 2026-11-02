@@ -10,6 +10,9 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
+use Intervention\Image\ImageManager;
 use TCG\Voyager\Actions\DeleteAction;
 use TCG\Voyager\Actions\EditAction;
 use TCG\Voyager\Actions\RestoreAction;
@@ -35,6 +38,7 @@ class Voyager
 {
     protected $version;
     protected $filesystem;
+    protected $imageManager;
 
     protected $alerts = [];
     protected $alertsCollected = false;
@@ -275,6 +279,18 @@ class Voyager
     public function getVersion()
     {
         return $this->version;
+    }
+
+    /**
+     * Image manager used for uploads, thumbnails and cropping.
+     *
+     * Created directly instead of through the container: Laravel 13 binds its own manager to "image".
+     */
+    public function imageManager(): ImageManager
+    {
+        return $this->imageManager ??= new ImageManager(
+            extension_loaded('gd') ? new GdDriver() : new ImagickDriver()
+        );
     }
 
     public function addAlert(Alert $alert)

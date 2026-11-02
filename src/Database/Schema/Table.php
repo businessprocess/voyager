@@ -2,7 +2,6 @@
 
 namespace TCG\Voyager\Database\Schema;
 
-use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Table as DoctrineTable;
 
 class Table extends DoctrineTable
@@ -29,7 +28,7 @@ class Table extends DoctrineTable
 
         $foreignKeys = [];
         foreach ($table['foreignKeys'] as $foreignKeyArr) {
-            $foreignKey = ForeignKey::make($foreignKeyArr);
+            $foreignKey = ForeignKey::make($foreignKeyArr, $name);
             $foreignKeys[$foreignKey->getName()] = $foreignKey;
         }
 
@@ -82,14 +81,30 @@ class Table extends DoctrineTable
         return $matched;
     }
 
+    /**
+     * @return \Doctrine\DBAL\Schema\TableDiff|false
+     */
     public function diff(DoctrineTable $compareTable)
     {
-        return (new Comparator())->diffTable($this, $compareTable);
+        return static::compare($this, $compareTable);
     }
 
+    /**
+     * @return \Doctrine\DBAL\Schema\TableDiff|false
+     */
     public function diffOriginal()
     {
-        return (new Comparator())->diffTable(SchemaManager::getDoctrineTable($this->_name), $this);
+        return static::compare(SchemaManager::getDoctrineTable($this->_name), $this);
+    }
+
+    /**
+     * @return \Doctrine\DBAL\Schema\TableDiff|false
+     */
+    public static function compare(DoctrineTable $fromTable, DoctrineTable $toTable)
+    {
+        $diff = SchemaManager::manager()->createComparator()->compareTables($fromTable, $toTable);
+
+        return $diff->isEmpty() ? false : $diff;
     }
 
     /**
@@ -154,7 +169,7 @@ class Table extends DoctrineTable
         $exportedForeignKeys = [];
 
         foreach ($this->getForeignKeys() as $name => $fk) {
-            $exportedForeignKeys[$name] = ForeignKey::toArray($fk);
+            $exportedForeignKeys[$name] = ForeignKey::toArray($fk, $this->_name);
         }
 
         return $exportedForeignKeys;

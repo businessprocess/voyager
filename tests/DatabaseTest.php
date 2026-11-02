@@ -2,8 +2,8 @@
 
 namespace TCG\Voyager\Tests;
 
-use Doctrine\DBAL\Schema\SchemaException;
 use Illuminate\Support\Facades\Auth;
+use TCG\Voyager\Database\Schema\SchemaException;
 use TCG\Voyager\Database\Schema\SchemaManager;
 use TCG\Voyager\Database\Schema\Table;
 use TCG\Voyager\Database\Types\Type;
@@ -61,19 +61,19 @@ class DatabaseTest extends TestCase
         $id = $dbTable->getColumn('id');
         $details = $dbTable->getColumn('details');
         // Column Type
-        $this->assertEquals('integer', $id->getType()->getName());
-        $this->assertEquals('json', $details->getType()->getName());
+        $this->assertEquals('integer', Type::lookupName($id->getType()));
+        $this->assertEquals('json', Type::lookupName($details->getType()));
         // Column auto increment
         $this->assertTrue($id->getAutoIncrement());
         // Column not null
         $this->assertTrue($details->getNotnull());
 
-        // Test Index
+        // Test Index (the primary key name is chosen by the database, e.g. PRIMARY on MySQL)
         $primary = $dbTable->getPrimaryKey();
-        $this->assertEquals('primary', $primary->getName());
+        $this->assertEquals(['id'], $primary->getColumns());
 
         // Test creating a table that already exists
-        $this->expectExceptionMessage("table {$this->table['name']} already exists");
+        $this->expectExceptionMessage(SchemaException::tableAlreadyExists($this->table['name'])->getMessage());
         SchemaManager::createTable($this->table);
     }
 
@@ -146,7 +146,7 @@ class DatabaseTest extends TestCase
         $dbTable = $this->update_table($dbTable->toArray());
 
         $this->assertTrue($dbTable->hasColumn($column));
-        $this->assertEquals('text', $dbTable->getColumn($column)->getType()->getName());
+        $this->assertEquals('text', Type::lookupName($dbTable->getColumn($column)->getType()));
     }
 
     protected function can_rename_column()
@@ -175,7 +175,7 @@ class DatabaseTest extends TestCase
 
         $dbTable = $this->update_table($this->table);
 
-        $this->assertEquals($newType, $dbTable->getColumn($columnName)->getType()->getName());
+        $this->assertEquals($newType, Type::lookupName($dbTable->getColumn($columnName)->getType()));
     }
 
     protected function can_change_column_options()
@@ -193,7 +193,9 @@ class DatabaseTest extends TestCase
         $column = $dbTable->getColumn($columnName);
 
         $this->assertEquals($notnull, $column->getNotnull());
-        $this->assertEquals($default, $column->getDefault());
+        // MySQL does not support defaults on TEXT columns, so it is dropped there
+        $typeName = Type::lookupName($column->getType());
+        $this->assertEquals(Type::isDefaultDisabled($typeName) ? null : $default, $column->getDefault());
     }
 
     protected function can_drop_column()
@@ -215,6 +217,12 @@ class DatabaseTest extends TestCase
     protected function can_add_index()
     {
         $dbTable = SchemaManager::listTableDetails($this->table['name']);
+
+        // e.g. MySQL can't index TEXT columns without a prefix length (the UI doesn't allow it either)
+        $type = Type::toArray($dbTable->getColumn('details')->getType());
+        if (!empty($type[Type::NOT_SUPPORT_INDEX])) {
+            return;
+        }
 
         $indexName = 'details_unique';
         $dbTable->addUniqueIndex(['details'], $indexName);

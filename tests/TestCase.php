@@ -13,12 +13,15 @@ class TestCase extends OrchestraTestCase
 
     public function setUp(): void
     {
-        parent::setUp();
-
-        // Persistent databases keep tables between tests, unlike sqlite :memory:
+        // Persistent databases keep tables between tests, unlike sqlite :memory:.
+        // Wipe before traits like DatabaseTransactions start their transaction.
         if (env('DB_CONNECTION', 'sqlite') !== 'sqlite') {
-            $this->artisan('db:wipe');
+            $this->afterApplicationRefreshed(function () {
+                $this->artisan('db:wipe');
+            });
         }
+
+        parent::setUp();
 
         $this->loadLaravelMigrations();
 

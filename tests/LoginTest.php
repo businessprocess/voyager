@@ -2,6 +2,7 @@
 
 namespace TCG\Voyager\Tests;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class LoginTest extends TestCase
@@ -53,6 +54,9 @@ class LoginTest extends TestCase
 
     public function testGetsLockedOutAfterFiveAttempts()
     {
+        // Freeze time so the lockout message always shows the full 60 seconds
+        Carbon::setTestNow(Carbon::now());
+
         session()->setPreviousUrl(route('voyager.login'));
 
         for ($i = 0; $i <= 5; $i++) {

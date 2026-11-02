@@ -3,10 +3,7 @@
 if (!function_exists('get_reflection_method')) {
     function get_reflection_method($object, $method)
     {
-        $reflectionMethod = new \ReflectionMethod($object, $method);
-        $reflectionMethod->setAccessible(true);
-
-        return $reflectionMethod;
+        return new \ReflectionMethod($object, $method);
     }
 }
 
@@ -20,10 +17,7 @@ if (!function_exists('call_protected_method')) {
 if (!function_exists('get_reflection_property')) {
     function get_reflection_property($object, $property)
     {
-        $reflectionProperty = new \ReflectionProperty($object, $property);
-        $reflectionProperty->setAccessible(true);
-
-        return $reflectionProperty;
+        return new \ReflectionProperty($object, $property);
     }
 }
 

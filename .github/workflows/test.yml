@@ -18,39 +18,60 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: [7.3, 7.4, 8.0, 8.1, 8.2]
-        laravel: ['8.*', '9.*', '10.*']
+        php: ['8.2', '8.3', '8.4', '8.5']
+        laravel: ['12.*', '13.*']
+        db: [sqlite]
         exclude:
-          - php: 8.2
-            laravel: 8.*
-          - php: 7.3
-            laravel: 9.*
-          - php: 7.4
-            laravel: 9.*
-          - php: 8.2
-            laravel: 9.*
-          - php: 7.3
-            laravel: 10.*
-          - php: 7.4
-            laravel: 10.*
-          - php: 8.0
-            laravel: 10.*
+          - php: '8.2'
+            laravel: 13.*
+        include:
+          - php: '8.5'
+            laravel: 13.*
+            db: mysql
+          - php: '8.5'
+            laravel: 13.*
+            db: pgsql
 
-    name: 'PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}'
+    name: 'PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }} / ${{ matrix.db }}'
+
+    services:
+      mysql:
+        image: ${{ matrix.db == 'mysql' && 'mysql:8.4' || '' }}
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: voyager
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+      postgres:
+        image: ${{ matrix.db == 'pgsql' && 'postgres:17' || '' }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: voyager
+        ports:
+          - 5432:5432
+        options: --health-cmd=pg_isready --health-interval=10s --health-timeout=5s --health-retries=5
+
+    env:
+      DB_CONNECTION: ${{ matrix.db }}
+      DB_PORT: ${{ matrix.db == 'pgsql' && '5432' || '3306' }}
+      DB_USERNAME: ${{ matrix.db == 'pgsql' && 'postgres' || 'root' }}
+      DB_PASSWORD: ${{ matrix.db == 'pgsql' && 'postgres' || '' }}
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
 
       # Configure PHP
       - name: Select PHP version
-        uses: shivammathur/setup-php@master
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php }}'
-          extensions: mbstring, pdo_sqlite, fileinfo, gd
+          extensions: mbstring, pdo_sqlite, pdo_mysql, pdo_pgsql, fileinfo, gd, exif
           coverage: none
 
       # Configure NPM
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v4
         with:
           node-version: '16.x'
 
@@ -77,4 +98,3 @@ jobs:
       # Run phpunit tests
       - name: Run tests
         run: ./vendor/bin/phpunit --no-coverage
-

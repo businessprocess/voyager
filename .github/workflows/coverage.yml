@@ -16,24 +16,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
 
       # Configure PHP
       - name: Select PHP version
-        uses: shivammathur/setup-php@master
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
-          extensions: mbstring, pdo_sqlite, fileinfo, gd
+          php-version: '8.5'
+          extensions: mbstring, pdo_sqlite, fileinfo, gd, exif
           coverage: pcov
 
       # Configure NPM
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v4
         with:
           node-version: '16.x'
 
       # Install PHP dependencies
       - name: Install Composer dependencies
-        run: composer require "illuminate/support:9.*" --no-ansi
+        run: composer require "illuminate/support:13.*" --no-ansi
 
       # Install NPM dependencies
       - name: Install Dependencies

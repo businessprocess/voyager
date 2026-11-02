@@ -15,6 +15,11 @@ class TestCase extends OrchestraTestCase
     {
         parent::setUp();
 
+        // Persistent databases keep tables between tests, unlike sqlite :memory:
+        if (env('DB_CONNECTION', 'sqlite') !== 'sqlite') {
+            $this->artisan('db:wipe');
+        }
+
         $this->loadLaravelMigrations();
 
         if (!is_dir(base_path('routes'))) {
@@ -53,9 +58,7 @@ class TestCase extends OrchestraTestCase
 
     public function tearDown(): void
     {
-        //parent::tearDown();
-
-        //$this->artisan('migrate:reset');
+        parent::tearDown();
     }
 
     /**
@@ -67,13 +70,19 @@ class TestCase extends OrchestraTestCase
      */
     protected function getEnvironmentSetUp($app)
     {
-        // Setup default database to use sqlite :memory:
+        // Setup default database to use sqlite :memory: unless DB_CONNECTION is set (mysql/pgsql in CI)
         $app['config']->set('database.default', 'testbench');
-        $app['config']->set('database.connections.testbench', [
+        $app['config']->set('database.connections.testbench', env('DB_CONNECTION', 'sqlite') === 'sqlite' ? [
             'driver'   => 'sqlite',
             'database' => ':memory:',
             'prefix'   => '',
-        ]);
+        ] : array_merge($app['config']->get('database.connections.'.env('DB_CONNECTION')), [
+            'host'     => env('DB_HOST', '127.0.0.1'),
+            'port'     => env('DB_PORT'),
+            'database' => env('DB_DATABASE', 'voyager'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+        ]));
 
         // Setup Voyager configuration
         $app['config']->set('voyager.user.namespace', User::class);

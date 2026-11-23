@@ -36,4 +36,16 @@ class VoyagerEventServiceProvider extends ServiceProvider
     {
         parent::boot();
     }
+
+    /**
+     * Since Laravel 11 every EventServiceProvider subclass registers SendEmailVerificationNotification
+     * for Registered unless its own $listen has it. The package must not do that: the host
+     * application decides, otherwise the verification email is sent twice.
+     *
+     * @return void
+     */
+    protected function configureEmailVerification()
+    {
+        //
+    }
 }

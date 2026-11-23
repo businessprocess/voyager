@@ -34,7 +34,7 @@ class User extends Authenticatable implements UserContract
 
     public function getSettingsAttribute($value)
     {
-        return collect(json_decode((string)$value));
+        return collect(json_decode((string) $value ?: 'null'));
     }
 
     public function setLocaleAttribute($value)

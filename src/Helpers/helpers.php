@@ -61,3 +61,41 @@ if (!function_exists('voyager_format_date')) {
         return Carbon\Carbon::parse($date)->translatedFormat($converted);
     }
 }
+
+if (!function_exists('voyager_json_decode')) {
+    /**
+     * json_decode() that tolerates empty and already-cast values.
+     * null / '' return null (PHP 8.1+ deprecates passing null to json_decode),
+     * arrays and objects (model casts) are normalized the same way a decoded string would be.
+     */
+    function voyager_json_decode($value, $assoc = false)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_array($value) || is_object($value)) {
+            return json_decode(json_encode($value), $assoc);
+        }
+
+        return json_decode((string) $value, $assoc);
+    }
+}
+
+if (!function_exists('voyager_display_value')) {
+    /**
+     * Make a field value safe for {{ }} output: arrays and plain objects (e.g. array/json casts)
+     * are rendered as JSON instead of failing in htmlspecialchars().
+     */
+    function voyager_display_value($value)
+    {
+        if (is_array($value) || (is_object($value)
+            && !$value instanceof Stringable
+            && !$value instanceof Illuminate\Contracts\Support\Htmlable
+            && !$value instanceof BackedEnum)) {
+            return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        return $value;
+    }
+}

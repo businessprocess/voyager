@@ -3,7 +3,7 @@
     <p class="label label-warning"><i class="voyager-warning"></i> {{ __('voyager::form.field_select_dd_relationship', ['method' => \Illuminate\Support\Str::camel($row->field).'()', 'class' => $dataType->model_name]) }}</p>
 @endif
 @php
-$dataTypeContent->{$row->field} = json_decode($dataTypeContent->{$row->field})
+$dataTypeContent->{$row->field} = voyager_json_decode($dataTypeContent->{$row->field})
 @endphp
 <select class="form-control select2" name="{{ $row->field }}[]" multiple>
     @if(isset($options->relationship))

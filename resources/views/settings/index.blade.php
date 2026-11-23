@@ -276,7 +276,7 @@
                                     @elseif($setting->type == "markdown_editor")
                                         <textarea class="form-control easymde" name="{{ $setting->key }}">{{ $setting->value ?? '' }}</textarea>
                                     @elseif($setting->type == "code_editor")
-                                        <?php $options = json_decode($setting->details); ?>
+                                        <?php $options = voyager_json_decode($setting->details); ?>
                                         <div id="{{ $setting->key }}" data-theme="{{ @$options->theme }}" data-language="{{ @$options->language }}" class="ace_editor min_height_400" name="{{ $setting->key }}">{{ $setting->value ?? '' }}</div>
                                         <textarea name="{{ $setting->key }}" id="{{ $setting->key }}_textarea" class="hidden">{{ $setting->value ?? '' }}</textarea>
                                     @elseif($setting->type == "image" || $setting->type == "file")
@@ -287,8 +287,8 @@
                                             </div>
                                             <div class="clearfix"></div>
                                         @elseif($setting->type == "file" && isset( $setting->value ))
-                                            @if(json_decode($setting->value) !== null)
-                                                @foreach(json_decode($setting->value) as $file)
+                                            @if(voyager_json_decode($setting->value) !== null)
+                                                @foreach(voyager_json_decode($setting->value) as $file)
                                                   <div class="fileType">
                                                     <a class="fileType" target="_blank" href="{{ Storage::disk(config('voyager.storage.disk'))->url($file->download_link) }}">
                                                       {{ $file->original_name }}
@@ -300,7 +300,7 @@
                                         @endif
                                         <input type="file" name="{{ $setting->key }}">
                                     @elseif($setting->type == "select_dropdown")
-                                        <?php $options = json_decode($setting->details); ?>
+                                        <?php $options = voyager_json_decode($setting->details); ?>
                                         <?php $selected_value = (isset($setting->value) && !empty($setting->value)) ? $setting->value : NULL; ?>
                                         <select class="form-control" name="{{ $setting->key }}">
                                             <?php $default = (isset($options->default)) ? $options->default : NULL; ?>
@@ -312,7 +312,7 @@
                                         </select>
 
                                     @elseif($setting->type == "radio_btn")
-                                        <?php $options = json_decode($setting->details); ?>
+                                        <?php $options = voyager_json_decode($setting->details); ?>
                                         <?php $selected_value = (isset($setting->value) && !empty($setting->value)) ? $setting->value : NULL; ?>
                                         <?php $default = (isset($options->default)) ? $options->default : NULL; ?>
                                         <ul class="radio">
@@ -328,7 +328,7 @@
                                             @endif
                                         </ul>
                                     @elseif($setting->type == "checkbox")
-                                        <?php $options = json_decode($setting->details); ?>
+                                        <?php $options = voyager_json_decode($setting->details); ?>
                                         <?php $checked = (isset($setting->value) && $setting->value == 1) ? true : false; ?>
                                         @if (isset($options->on) && isset($options->off))
                                             <input type="checkbox" name="{{ $setting->key }}" class="toggleswitch" @if($checked) checked @endif data-on="{{ $options->on }}" data-off="{{ $options->off }}">

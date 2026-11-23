@@ -135,8 +135,8 @@
                                                         @endforeach
 
                                                     @elseif(property_exists($row->details, 'options'))
-                                                        @if (!empty(json_decode($data->{$row->field})))
-                                                            @foreach(json_decode($data->{$row->field}) as $item)
+                                                        @if (!empty(voyager_json_decode($data->{$row->field})))
+                                                            @foreach(voyager_json_decode($data->{$row->field}) as $item)
                                                                 @if (@$row->details->options->{$item})
                                                                     {{ $row->details->options->{$item} . (!$loop->last ? ', ' : '') }}
                                                                 @endif
@@ -147,8 +147,8 @@
                                                     @endif
 
                                                     @elseif($row->type == 'multiple_checkbox' && property_exists($row->details, 'options'))
-                                                        @if (@count(json_decode($data->{$row->field}, true)) > 0)
-                                                            @foreach(json_decode($data->{$row->field}) as $item)
+                                                        @if (!empty(voyager_json_decode($data->{$row->field}, true)))
+                                                            @foreach(voyager_json_decode($data->{$row->field}) as $item)
                                                                 @if (@$row->details->options->{$item})
                                                                     {{ $row->details->options->{$item} . (!$loop->last ? ', ' : '') }}
                                                                 @endif
@@ -181,14 +181,14 @@
                                                     <span class="badge badge-lg" style="background-color: {{ $data->{$row->field} }}">{{ $data->{$row->field} }}</span>
                                                 @elseif($row->type == 'text')
                                                     @include('voyager::multilingual.input-hidden-bread-browse')
-                                                    <div>{{ mb_strlen( $data->{$row->field} ) > 200 ? mb_substr($data->{$row->field}, 0, 200) . ' ...' : $data->{$row->field} }}</div>
+                                                    <div>{{ mb_strlen((string) $data->{$row->field}) > 200 ? mb_substr((string) $data->{$row->field}, 0, 200) . ' ...' : $data->{$row->field} }}</div>
                                                 @elseif($row->type == 'text_area')
                                                     @include('voyager::multilingual.input-hidden-bread-browse')
-                                                    <div>{{ mb_strlen( $data->{$row->field} ) > 200 ? mb_substr($data->{$row->field}, 0, 200) . ' ...' : $data->{$row->field} }}</div>
+                                                    <div>{{ mb_strlen((string) $data->{$row->field}) > 200 ? mb_substr((string) $data->{$row->field}, 0, 200) . ' ...' : $data->{$row->field} }}</div>
                                                 @elseif($row->type == 'file' && !empty($data->{$row->field}) )
                                                     @include('voyager::multilingual.input-hidden-bread-browse')
-                                                    @if(json_decode($data->{$row->field}) !== null)
-                                                        @foreach(json_decode($data->{$row->field}) as $file)
+                                                    @if(voyager_json_decode($data->{$row->field}) !== null)
+                                                        @foreach(voyager_json_decode($data->{$row->field}) as $file)
                                                             <a href="{{ Storage::disk(config('voyager.storage.disk'))->url($file->download_link) ?: '' }}" target="_blank">
                                                                 {{ $file->original_name ?: '' }}
                                                             </a>
@@ -201,11 +201,12 @@
                                                     @endif
                                                 @elseif($row->type == 'rich_text_box')
                                                     @include('voyager::multilingual.input-hidden-bread-browse')
-                                                    <div>{{ mb_strlen( strip_tags($data->{$row->field}, '<b><i><u>') ) > 200 ? mb_substr(strip_tags($data->{$row->field}, '<b><i><u>'), 0, 200) . ' ...' : strip_tags($data->{$row->field}, '<b><i><u>') }}</div>
+                                                    @php $richText = strip_tags((string) $data->{$row->field}, '<b><i><u>'); @endphp
+                                                    <div>{{ mb_strlen($richText) > 200 ? mb_substr($richText, 0, 200) . ' ...' : $richText }}</div>
                                                 @elseif($row->type == 'coordinates')
                                                     @include('voyager::partials.coordinates-static-image')
                                                 @elseif($row->type == 'multiple_images')
-                                                    @php $images = json_decode($data->{$row->field}); @endphp
+                                                    @php $images = voyager_json_decode($data->{$row->field}); @endphp
                                                     @if($images)
                                                         @php $images = array_slice($images, 0, 3); @endphp
                                                         @foreach($images as $image)
@@ -217,7 +218,7 @@
                                                         if (is_array($data->{$row->field})) {
                                                             $files = $data->{$row->field};
                                                         } else {
-                                                            $files = json_decode($data->{$row->field});
+                                                            $files = voyager_json_decode($data->{$row->field});
                                                         }
                                                     @endphp
                                                     @if ($files)
@@ -248,7 +249,7 @@
                                                     @endif
                                                 @else
                                                     @include('voyager::multilingual.input-hidden-bread-browse')
-                                                    <span>{{ $data->{$row->field} }}</span>
+                                                    <span>{{ voyager_display_value($data->{$row->field}) }}</span>
                                                 @endif
                                             </td>
                                         @endforeach

@@ -122,7 +122,7 @@ class VoyagerCompassController extends Controller
         foreach ($output as $output_line) {
             if (empty(trim(substr($output_line, 0, 2)))) {
                 $parts = preg_split('/  +/', trim($output_line));
-                $command = (object) ['name' => trim(@$parts[0]), 'description' => trim(@$parts[1])];
+                $command = (object) ['name' => trim($parts[0] ?? ''), 'description' => trim($parts[1] ?? '')];
                 array_push($commands, $command);
             }
         }

@@ -57,8 +57,8 @@
                                 <img class="img-responsive"
                                      src="{{ filter_var($dataTypeContent->{$row->field}, FILTER_VALIDATE_URL) ? $dataTypeContent->{$row->field} : Voyager::image($dataTypeContent->{$row->field}) }}">
                             @elseif($row->type == 'multiple_images')
-                                @if(json_decode($dataTypeContent->{$row->field}))
-                                    @foreach(json_decode($dataTypeContent->{$row->field}) as $file)
+                                @if(voyager_json_decode($dataTypeContent->{$row->field}))
+                                    @foreach(voyager_json_decode($dataTypeContent->{$row->field}) as $file)
                                         <img class="img-responsive"
                                              src="{{ filter_var($file, FILTER_VALIDATE_URL) ? $file : Voyager::image($file) }}">
                                     @endforeach
@@ -75,13 +75,13 @@
                             @elseif($row->type == 'select_multiple')
                                 @if(property_exists($row->details, 'relationship'))
 
-                                    @foreach(json_decode($dataTypeContent->{$row->field}) as $item)
+                                    @foreach(voyager_json_decode($dataTypeContent->{$row->field}) ?? [] as $item)
                                         {{ $item->{$row->field}  }}
                                     @endforeach
 
                                 @elseif(property_exists($row->details, 'options'))
-                                    @if (!empty(json_decode($dataTypeContent->{$row->field})))
-                                        @foreach(json_decode($dataTypeContent->{$row->field}) as $item)
+                                    @if (!empty(voyager_json_decode($dataTypeContent->{$row->field})))
+                                        @foreach(voyager_json_decode($dataTypeContent->{$row->field}) as $item)
                                             @if (@$row->details->options->{$item})
                                                 {{ $row->details->options->{$item} . (!$loop->last ? ', ' : '') }}
                                             @endif
@@ -114,8 +114,8 @@
                                 @include('voyager::multilingual.input-hidden-bread-read')
                                 {!! $dataTypeContent->{$row->field} !!}
                             @elseif($row->type == 'file')
-                                @if(json_decode($dataTypeContent->{$row->field}))
-                                    @foreach(json_decode($dataTypeContent->{$row->field}) as $file)
+                                @if(voyager_json_decode($dataTypeContent->{$row->field}))
+                                    @foreach(voyager_json_decode($dataTypeContent->{$row->field}) as $file)
                                         <a href="{{ Storage::disk(config('voyager.storage.disk'))->url($file->download_link) ?: '' }}">
                                             {{ $file->original_name ?: '' }}
                                         </a>
@@ -128,7 +128,7 @@
                                 @endif
                             @else
                                 @include('voyager::multilingual.input-hidden-bread-read')
-                                <p>{{ $dataTypeContent->{$row->field} }}</p>
+                                <p>{{ voyager_display_value($dataTypeContent->{$row->field}) }}</p>
                             @endif
                         </div><!-- panel-body -->
                         @if(!$loop->last)

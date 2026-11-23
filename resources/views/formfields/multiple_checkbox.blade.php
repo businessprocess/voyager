@@ -5,7 +5,7 @@
         @if(isset($dataTypeContent->{$row->field}) || old($row->field))
             @php
                 $checkedData = old($row->field, $dataTypeContent->{$row->field});
-                $checkedData = is_array($checkedData) ? $checkedData : json_decode($checkedData, true);
+                $checkedData = is_array($checkedData) ? $checkedData : (voyager_json_decode($checkedData, true) ?? []);
                 $checked = in_array($key, $checkedData);
             @endphp
         @else

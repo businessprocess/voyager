@@ -1,6 +1,6 @@
 @if(isset($dataTypeContent->{$row->field}))
-    @if(json_decode($dataTypeContent->{$row->field}) !== null)
-        @foreach(json_decode($dataTypeContent->{$row->field}) as $file)
+    @if(voyager_json_decode($dataTypeContent->{$row->field}) !== null)
+        @foreach(voyager_json_decode($dataTypeContent->{$row->field}) as $file)
           <div data-field-name="{{ $row->field }}">
             <a class="fileType" target="_blank"
               href="{{ Storage::disk(config('voyager.storage.disk'))->url($file->download_link) ?: '' }}"
